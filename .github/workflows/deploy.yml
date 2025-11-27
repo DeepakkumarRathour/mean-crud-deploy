@@ -47,3 +47,4 @@ jobs:
           cd mean-app
           docker-compose pull
           docker-compose up -d
+ 
