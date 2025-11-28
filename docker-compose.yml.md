@@ -1,4 +1,3 @@
-
 version: "3.9"
  
 services:
@@ -26,14 +25,13 @@ services:
       - mongo
 
   frontend:
-  image: deepakkumarrathour/mean-frontend:latest
-  container_name: mean-frontend
-  ports:
-    - "80:80"
-  restart: always
-  volumes:
-    - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
-
+    image: deepak18052000/mean-frontend:latest
+    container_name: mean-frontend
+    restart: always
+    ports:
+      - "4200:80"
+    depends_on:
+      - backend
 
   nginx:
     image: nginx:alpine
@@ -48,6 +46,4 @@ services:
 
 volumes:
   mongo_data:
-          
-
           
