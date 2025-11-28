@@ -1,24 +1,14 @@
-# Stage 1: Build Angular app
-FROM node:18-alpine AS builder
-
+# Build Angular app
+FROM node:18 AS build
 WORKDIR /app
-
-# Install dependencies
 COPY package*.json ./
-RUN npm ci
-
-# Copy full frontend source
+RUN npm install
 COPY . .
+RUN npm run build
 
-# Build Angular app (project name = angular-15-crud)
-RUN npm run build -- --configuration production --project angular-15-crud
-
-# Stage 2: Serve using nginx
-FROM nginx:stable-alpine
-
-# Copy Angular built files to nginx html folder
-COPY --from=builder /app/dist/angular-15-crud/ /usr/share/nginx/html/
-
+# Nginx stage
+FROM nginx:alpine
+COPY nginx/default.conf /etc/nginx/conf.d/default.conf
+COPY dist/angular-15-crud /usr/share/nginx/html
 EXPOSE 80
-
 CMD ["nginx", "-g", "daemon off;"]
