@@ -1,37 +1,38 @@
 const express = require("express");
-//const cors = require("cors");
-
 const app = express();
 
-// parse requests of content-type - application/json
+// Middleware
 app.use(express.json());
-
-// parse requests of content-type - application/x-www-form-urlencoded
 app.use(express.urlencoded({ extended: true }));
 
-const db = require("./app/models");
-db.mongoose
-  .connect(db.url, {
+// MongoDB Connection
+const mongoose = require("mongoose");
+
+const mongoUrl = process.env.MONGO_URL; // <<< IMPORTANT: Now using Docker ENV
+
+mongoose
+  .connect(mongoUrl, {
     useNewUrlParser: true,
     useUnifiedTopology: true
   })
   .then(() => {
-    console.log("Connected to the database!");
+    console.log("✅ Connected to MongoDB successfully!");
   })
   .catch(err => {
-    console.log("Cannot connect to the database!", err);
-    process.exit();
+    console.error("❌ Cannot connect to MongoDB!", err.message);
+    process.exit(1);
   });
 
-// simple route
+// Simple route
 app.get("/", (req, res) => {
   res.json({ message: "Welcome to Test application." });
 });
 
+// Routes
 require("./app/routes/turorial.routes")(app);
 
-// set port, listen for requests
-const PORT = process.env.PORT || 8080;
+// Start server
+const PORT = process.env.PORT || 3000; // IMPORTANT: Docker backend uses port 3000
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}.`);
+  console.log(`🚀 Server is running on port ${PORT}.`);
 });
