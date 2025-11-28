@@ -17,7 +17,7 @@ RUN npm run build -- --configuration production --project angular-15-crud
 FROM nginx:stable-alpine
 
 # Copy Angular built files to nginx html folder
-COPY --from=builder /app/frontend/angular-15-crud/ /usr/share/nginx/html/
+COPY --from=builder /app/dist/angular-15-crud/ /usr/share/nginx/html/
 
 EXPOSE 80
 
