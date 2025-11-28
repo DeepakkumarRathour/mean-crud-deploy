@@ -3,23 +3,21 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Copy Angular project
-COPY angular-15-crud/package*.json ./angular-15-crud/
-RUN cd angular-15-crud && npm install
+# Install dependencies
+COPY package*.json ./
+RUN npm ci
 
-COPY angular-15-crud ./angular-15-crud
+# Copy full frontend source
+COPY . .
 
-# Build Angular project
-RUN cd angular-15-crud && npm run build -- --configuration production
+# Build Angular app (project name = angular-15-crud)
+RUN npm run build -- --configuration production --project angular-15-crud
 
-# Stage 2: Serve with Nginx
+# Stage 2: Serve using nginx
 FROM nginx:stable-alpine
 
-# Copy custom nginx config
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# Copy Angular build output
-COPY --from=builder /app/angular-15-crud/dist/angular-15-crud/ /usr/share/nginx/html/
+# Copy Angular built files to nginx html folder
+COPY --from=builder /app/frontend/angular-15-crud/ /usr/share/nginx/html/
 
 EXPOSE 80
 
