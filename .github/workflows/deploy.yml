@@ -1,50 +1,45 @@
-name: CI/CD Pipeline
+name: Deploy to EC2
 
 on:
   push:
-    branches:
-      - main
+    branches: [ "main" ]
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v3
+      - name: Checkout source
+        uses: actions/checkout@v4
 
-    # Login to Docker Hub
-    - name: Login to Docker Hub
-      uses: docker/login-action@v2
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    # Build Backend Image
-    - name: Build Backend Image
-      run: |
-        docker build -t deepak18052000/mean-backend:latest ./backend
+      - name: Build backend image
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/mean-backend:latest ./backend
 
-    # Build Frontend Image
-    - name: Build Frontend Image
-      run: |
-        docker build -t deepak18052000/mean-frontend:latest ./frontend
+      - name: Build frontend image
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/mean-frontend:latest ./frontend
 
-    # Push Images to Docker Hub
-    - name: Push Images
-      run: |
-        docker push deepak18052000/mean-backend:latest
-        docker push deepak18052000/mean-frontend:latest
+      - name: Push backend image
+        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/mean-backend:latest
 
-    # SSH into EC2 and deploy
-    - name: SSH & Deploy on EC2
-      uses: appleboy/ssh-action@v0.1.6
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ec2-user
-        key: ${{ secrets.EC2_KEY }}
-        script: |
-          cd mean-app
-          docker-compose pull
-          docker-compose up -d
- 
+      - name: Push frontend image
+        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/mean-frontend:latest
+
+      - name: Deploy on EC2
+        uses: appleboy/ssh-action@v1.1.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/mean-app
+            docker-compose pull
+            docker-compose down
+            docker-compose up -d
