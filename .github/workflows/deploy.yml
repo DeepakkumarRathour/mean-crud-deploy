@@ -1,72 +1,46 @@
-name: CI/CD Build & Deploy
+name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main ]
- 
+    branches:
+      - main
+
 jobs:
-  build-and-push:
-    name: Build & Push Docker images
+  build-and-deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+    - name: Checkout Code
+      uses: actions/checkout@v3
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+    # Login to Docker Hub
+    - name: Login to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to DockerHub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build and push backend image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./backend
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/mean-backend:latest
-
-      - name: Build and push frontend image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./frontend
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/mean-frontend:latest
-
-  deploy:
-    name: SSH Deploy to EC2
-    runs-on: ubuntu-latest
-    needs: build-and-push
-    steps:
-      - name: Wait for a few seconds
-        run: sleep 5
-
-      - name: Install ssh client
-        run: sudo apt-get update && sudo apt-get install -y openssh-client
-
-      - name: Copy deploy script + run on server
-        uses: appleboy/scp-action@v0.1.5
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ec2-user
-          key: ${{ secrets.EC2_SSH_KEY }}
-          port: 22
-          source: "deploy.sh"
-          target: "/home/ec2-user/mean-app/deploy.sh"
-
-      - name: Remote run deploy.sh
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ec2-user
-          key: ${{ secrets.EC2_SSH_KEY }}
-          port: 22
-          script: |
-            chmod +x /home/ec2-user/mean-app/deploy.sh
-            cd /home/ec2-user/mean-app
-            ./deploy.sh
+    # Build Backend Image
+    - name: Build Backend Image
+      run: |
+        docker build -t deepak18052000/mean-backend:latest ./backend
+    # Build Frontend Image
+    - name: Build Frontend Image
+      run: |
+        docker build -t deepak18052000/mean-frontend:latest ./frontend
+    # Push Images to Docker Hub
+    - name: Push Images
+      run: |
+        docker push deepak18052000/mean-backend:latest
+        docker push deepak18052000/mean-frontend:latest
+    # SSH into EC2 and deploy
+    - name: SSH & Deploy on EC2
+      uses: appleboy/ssh-action@v0.1.6
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ec2-user
+        key: ${{ secrets.EC2_KEY }}
+        script: |
+          cd mean-app
+          docker-compose pull
+          docker-compose up -d
